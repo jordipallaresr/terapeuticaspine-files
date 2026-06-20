@@ -6,9 +6,10 @@
 // Clerk funciona. Migrar a `proxy.ts` cuando OpenNext soporte Node middleware.
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Ruta pública: sólo el sign-in (no hay registro). Todo lo demás (incluido
-// /api/download) queda protegido.
-const isPublicRoute = createRouteMatcher(["/sign-in(.*)"]);
+// Rutas públicas: el sign-in (no hay registro) y robots.txt (para que los
+// crawlers puedan leer el Disallow). Todo lo demás (incluido /api/download)
+// queda protegido.
+const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/robots.txt"]);
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
