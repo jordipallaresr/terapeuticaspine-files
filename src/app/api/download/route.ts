@@ -1,4 +1,4 @@
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { downloadZip } from "client-zip";
 
 import { listObjectKeys } from "@/lib/r2";
@@ -14,6 +14,14 @@ export async function GET(request: Request) {
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });
   }
+
+  // Email del usuario para la auditoría de descargas.
+  const user = await currentUser();
+  const email =
+    user?.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)
+      ?.emailAddress ??
+    user?.emailAddresses[0]?.emailAddress ??
+    null;
 
   // 2) Carpeta solicitada (el query param viene URL-encoded; URL lo decodifica).
   const { searchParams } = new URL(request.url);
@@ -33,6 +41,20 @@ export async function GET(request: Request) {
   if (keys.length === 0) {
     return new Response("La carpeta está vacía o no existe", { status: 404 });
   }
+
+  // 3b) AUDITORÍA: registra quién descarga qué paciente. Aparece en los logs del
+  //     Worker (observability activado en wrangler.jsonc; ver con `wrangler tail`
+  //     o en el dashboard → Worker → Logs). Línea JSON para poder filtrar.
+  console.log(
+    JSON.stringify({
+      event: "zip_download",
+      at: new Date().toISOString(),
+      patient: folder,
+      userEmail: email,
+      userId,
+      files: keys.length,
+    }),
+  );
 
   const bucket = await getBucket();
 
