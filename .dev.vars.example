@@ -1,0 +1,6 @@
+# Cópialo a `.dev.vars` para `pnpm preview` (runtime de Cloudflare/workerd en local).
+# Mismos valores que en `.env.local`.
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=
+CLERK_SECRET_KEY=
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+BASE_PREFIX=Imagenes/

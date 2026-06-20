@@ -1,0 +1,44 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "terapeutica-spine-files",
+  "main": ".open-next/worker.js",
+  "compatibility_date": "2025-03-25",
+  "compatibility_flags": ["nodejs_compat"],
+
+  // Variables de texto (no secretas) disponibles en runtime del Worker.
+  // El prefijo base bajo el que viven las carpetas de pacientes en el bucket.
+  "vars": {
+    "BASE_PREFIX": "Imagenes/"
+  },
+
+  // Requerido por OpenNext: assets estáticos del build de Next.
+  "assets": {
+    "directory": ".open-next/assets",
+    "binding": "ASSETS"
+  },
+
+  // Binding de R2. `binding` es el nombre con el que se accede desde el código
+  // (env.IMAGENES_BUCKET). `bucket_name` es el nombre REAL del bucket en tu
+  // cuenta de Cloudflare R2. Cámbialo si renombras el bucket.
+  // "remote": true → en desarrollo local (pnpm dev / pnpm preview) el binding se
+  // conecta al bucket R2 REAL en Cloudflare, en lugar del simulado local (vacío).
+  // Requiere estar autenticado (`pnpm wrangler login`). En producción se ignora.
+  "r2_buckets": [
+    {
+      "binding": "IMAGENES_BUCKET",
+      "bucket_name": "onedrive-backup",
+      "jurisdiction": "eu",
+      "remote": true
+    }
+  ],
+
+  // 5 minutos de CPU: por si una carpeta es grande y el CRC32 del zip tarda.
+  // (Requiere el modelo de uso estándar / plan de pago en Workers.)
+  "limits": {
+    "cpu_ms": 300000
+  },
+
+  "observability": {
+    "enabled": true
+  }
+}
