@@ -3,12 +3,17 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useSignIn } from "@clerk/nextjs";
-import { Activity, ArrowLeft, Loader2, Mail } from "lucide-react";
+import { ArrowLeft, Loader2, Mail } from "lucide-react";
 
+import { BrandLogo } from "@/components/brand-logo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 type Step = "email" | "code";
+
+// Sólo se permite el acceso a correos de la organización. Se valida en cliente
+// antes de llamar a Clerk; el mensaje de error es genérico a propósito.
+const ALLOWED_EMAIL_DOMAIN = "terapeuticaspine.com";
 
 export function SignInForm() {
   const { isLoaded, signIn, setActive } = useSignIn();
@@ -24,9 +29,16 @@ export function SignInForm() {
     e.preventDefault();
     if (!isLoaded || submitting) return;
     setError(null);
+
+    const normalizedEmail = email.trim().toLowerCase();
+    if (!normalizedEmail.endsWith(`@${ALLOWED_EMAIL_DOMAIN}`)) {
+      setError("Email no válido.");
+      return;
+    }
+
     setSubmitting(true);
     try {
-      const attempt = await signIn.create({ identifier: email.trim() });
+      const attempt = await signIn.create({ identifier: normalizedEmail });
 
       const emailFactor = attempt.supportedFirstFactors?.find(
         (f) => f.strategy === "email_code",
@@ -78,9 +90,7 @@ export function SignInForm() {
   return (
     <div className="w-full max-w-sm">
       <div className="mb-6 flex flex-col items-center text-center">
-        <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <Activity className="size-6" />
-        </div>
+        <BrandLogo className="mb-3 size-11 rounded-xl" />
         <h1 className="text-xl font-semibold tracking-tight">
           Terapeutica Spine SL
         </h1>
