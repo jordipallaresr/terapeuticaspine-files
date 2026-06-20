@@ -2,7 +2,7 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "terapeuticaspine-files",
   "main": ".open-next/worker.js",
-  "compatibility_date": "2025-03-25",
+  "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
 
   // Variables de texto (no secretas) disponibles en runtime del Worker.
@@ -32,11 +32,10 @@
     }
   ],
 
-  // 5 minutos de CPU: por si una carpeta es grande y el CRC32 del zip tarda.
-  // (Requiere el modelo de uso estándar / plan de pago en Workers.)
-  "limits": {
-    "cpu_ms": 300000
-  },
+  // CPU extendida (5 min) para zips grandes: SOLO en plan de pago (Workers Paid).
+  // En plan Free hay que dejarlo fuera o el deploy falla (code 100328).
+  // Si pasas a Paid, descomenta para subir el límite:
+  // "limits": { "cpu_ms": 300000 },
 
   "observability": {
     "enabled": true
