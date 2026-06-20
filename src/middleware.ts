@@ -13,7 +13,11 @@ const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/robots.txt"]);
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
-    await auth.protect();
+    // Redirige a NUESTRA página /sign-in (no al Account Portal de Clerk) cuando
+    // no hay sesión, de forma explícita para no depender de variables de entorno.
+    await auth.protect({
+      unauthenticatedUrl: new URL("/sign-in", request.url).toString(),
+    });
   }
 });
 
