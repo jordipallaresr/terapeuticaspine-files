@@ -5,8 +5,8 @@ import { BrandLogo } from "@/components/brand-logo";
 import { LogoutButton } from "@/components/logout-button";
 
 export async function Header() {
-  // Petición sin contexto de middleware (p.ej. /favicon.ico → 404 dentro del
-  // layout): currentUser() lanzaría; lo envolvemos para no ensuciar los logs.
+  // Request without middleware context (e.g. /favicon.ico → 404 inside the
+  // layout): currentUser() would throw; we wrap it to avoid cluttering the logs.
   let email: string | undefined;
   try {
     const user = await currentUser();
@@ -18,8 +18,8 @@ export async function Header() {
   }
 
   return (
-    // Sólo se muestra con sesión iniciada: en la página de login no hay header
-    // (la propia tarjeta de acceso ya lleva el logo y el nombre).
+    // Only shown when signed in: there's no header on the login page
+    // (the sign-in card itself already carries the logo and the name).
     <SignedIn>
       <header className="sticky top-0 z-10 border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="mx-auto flex h-16 max-w-4xl items-center justify-between gap-4 px-4 sm:px-6">

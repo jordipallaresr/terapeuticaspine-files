@@ -2,9 +2,9 @@ import "server-only";
 import { BASE_PREFIX, getBucket } from "./config";
 
 /**
- * Lista TODAS las carpetas de primer nivel bajo BASE_PREFIX, paginando con
- * cursor hasta el final (no se queda en la primera página de 1000). Devuelve los
- * nombres "limpios" (sin el prefijo ni la barra final), ordenados alfabéticamente.
+ * Lists ALL top-level folders under BASE_PREFIX, paginating with a cursor until
+ * the end (it doesn't stop at the first page of 1000). Returns the "clean" names
+ * (without the prefix or trailing slash), sorted alphabetically.
  */
 export async function listFolders(): Promise<string[]> {
   const bucket = await getBucket();
@@ -34,9 +34,9 @@ export async function listFolders(): Promise<string[]> {
 }
 
 /**
- * Lista las claves (keys) de todos los objetos dentro de una carpeta concreta,
- * paginando con cursor hasta el final. Excluye "marcadores" de carpeta (keys que
- * terminan en "/"). `folder` es el nombre limpio (sin prefijo ni barras).
+ * Lists the keys of all objects inside a specific folder, paginating with a
+ * cursor until the end. Excludes folder "markers" (keys that end in "/").
+ * `folder` is the clean name (without prefix or slashes).
  */
 export async function listObjectKeys(folder: string): Promise<{
   fullPrefix: string;

@@ -1,20 +1,19 @@
-// NOTA (Next.js 16): mantenemos la convención `middleware.ts` (runtime Edge) a
-// propósito, pese al aviso de deprecación que sugiere `proxy.ts`. En Next 16
-// `proxy.ts` se ejecuta SÓLO en runtime Node, y OpenNext/Cloudflare todavía no
-// soporta middleware en Node ("Node.js middleware is not currently supported").
-// `middleware.ts` compila como Edge, que es lo que OpenNext sí soporta y donde
-// Clerk funciona. Migrar a `proxy.ts` cuando OpenNext soporte Node middleware.
+// NOTE (Next.js 16): we keep the `middleware.ts` convention (Edge runtime) on
+// purpose, despite the deprecation warning that suggests `proxy.ts`. In Next 16
+// `proxy.ts` runs ONLY in the Node runtime, and OpenNext/Cloudflare does not yet
+// support middleware on Node ("Node.js middleware is not currently supported").
+// `middleware.ts` compiles as Edge, which is what OpenNext does support and where
+// Clerk works. Migrate to `proxy.ts` when OpenNext supports Node middleware.
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-// Rutas públicas: el sign-in (no hay registro) y robots.txt (para que los
-// crawlers puedan leer el Disallow). Todo lo demás (incluido /api/download)
-// queda protegido.
+// Public routes: sign-in (there is no sign-up) and robots.txt (so crawlers can
+// read the Disallow). Everything else (including /api/download) is protected.
 const isPublicRoute = createRouteMatcher(["/sign-in(.*)", "/robots.txt"]);
 
 export default clerkMiddleware(async (auth, request) => {
   if (!isPublicRoute(request)) {
-    // Redirige a NUESTRA página /sign-in (no al Account Portal de Clerk) cuando
-    // no hay sesión, de forma explícita para no depender de variables de entorno.
+    // Redirect to OUR /sign-in page (not Clerk's Account Portal) when there is
+    // no session, explicitly so we don't depend on environment variables.
     await auth.protect({
       unauthenticatedUrl: new URL("/sign-in", request.url).toString(),
     });
@@ -23,10 +22,10 @@ export default clerkMiddleware(async (auth, request) => {
 
 export const config = {
   matcher: [
-    // Todas las rutas excepto internas de Next y archivos estáticos,
-    // salvo que aparezcan en query params.
+    // All routes except Next internals and static files,
+    // unless they appear in query params.
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Siempre ejecutar para rutas de API.
+    // Always run for API routes.
     "/(api|trpc)(.*)",
   ],
 };

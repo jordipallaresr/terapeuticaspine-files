@@ -1,5 +1,5 @@
-// Logo de Terapeutica Spine (mismo icono que el favicon de terapeuticaspine.com):
-// cuadrado teal con cruz médica blanca. Se renderiza inline para escalar nítido.
+// Terapeutica Spine logo (same icon as the favicon of terapeuticaspine.com):
+// teal square with a white medical cross. Rendered inline to scale crisply.
 export function BrandLogo({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 64 64" className={className} aria-hidden="true">

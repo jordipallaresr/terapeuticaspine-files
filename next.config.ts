@@ -1,12 +1,12 @@
 import type { NextConfig } from "next";
 
-// OpenNext: inicializa el contexto de Cloudflare (bindings R2, etc.) en `next dev`.
-// Debe llamarse ANTES de definir/exportar la config.
+// OpenNext: initializes the Cloudflare context (R2 bindings, etc.) in `next dev`.
+// Must be called BEFORE defining/exporting the config.
 import { initOpenNextCloudflareForDev } from "@opennextjs/cloudflare";
 initOpenNextCloudflareForDev();
 
 const nextConfig: NextConfig = {
-  // Las imágenes se sirven como descargas zip; no necesitamos el optimizador.
+  // Images are served as zip downloads; we don't need the optimizer.
   images: { unoptimized: true },
 };
 

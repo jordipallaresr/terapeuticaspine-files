@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 
-/** Quita acentos/diacríticos y pasa a minúsculas para comparar sin acentos. */
+/** Removes accents/diacritics and lowercases to compare without accents. */
 function normalize(s: string): string {
   return s
     .normalize("NFD")
@@ -21,7 +21,7 @@ function normalize(s: string): string {
     .trim();
 }
 
-/** Primera letra de cada palabra en mayúscula, el resto en minúscula. */
+/** First letter of each word uppercase, the rest lowercase. */
 function titleCase(s: string): string {
   return s
     .toLocaleLowerCase("es")
@@ -41,16 +41,16 @@ export function FolderBrowser({ folders }: { folders: string[] }) {
   }, [folders, query]);
 
   function handleDownload(folder: string) {
-    if (downloading) return; // evita doble click / descargas solapadas
+    if (downloading) return; // prevents double click / overlapping downloads
     setDownloading(folder);
 
     const url = `/api/download?prefix=${encodeURIComponent(folder)}`;
-    // Navegar a una respuesta con Content-Disposition: attachment dispara la
-    // descarga sin abandonar la página.
+    // Navigating to a response with Content-Disposition: attachment triggers the
+    // download without leaving the page.
     window.location.href = url;
 
-    // No hay evento fiable de "descarga iniciada"; limpiamos el estado tras un
-    // margen para que el usuario vea el feedback.
+    // There's no reliable "download started" event; we clear the state after a
+    // delay so the user sees the feedback.
     window.setTimeout(() => {
       setDownloading((cur) => (cur === folder ? null : cur));
     }, 5000);

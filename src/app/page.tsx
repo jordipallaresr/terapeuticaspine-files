@@ -1,7 +1,7 @@
 import { listFolders } from "@/lib/r2";
 import { FolderBrowser } from "@/components/folder-browser";
 
-// Los datos vienen del binding R2 en tiempo de petición: render dinámico.
+// The data comes from the R2 binding at request time: dynamic render.
 export const dynamic = "force-dynamic";
 
 export default async function Home() {

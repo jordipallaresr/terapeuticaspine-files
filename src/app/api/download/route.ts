@@ -4,18 +4,18 @@ import { downloadZip } from "client-zip";
 import { listObjectKeys } from "@/lib/r2";
 import { getBucket } from "@/lib/config";
 
-// El binding R2 sólo existe en tiempo de petición; nada de prerender.
+// The R2 binding only exists at request time; no prerender.
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  // 1) Sesión de Clerk obligatoria (defensa en profundidad: el middleware ya
-  //    protege la ruta, pero aquí devolvemos 401 explícito).
+  // 1) Clerk session required (defense in depth: the middleware already protects
+  //    the route, but here we return an explicit 401).
   const { userId } = await auth();
   if (!userId) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  // Email del usuario para la auditoría de descargas.
+  // User's email for the download audit.
   const user = await currentUser();
   const email =
     user?.emailAddresses.find((e) => e.id === user.primaryEmailAddressId)
@@ -23,28 +23,28 @@ export async function GET(request: Request) {
     user?.emailAddresses[0]?.emailAddress ??
     null;
 
-  // 2) Carpeta solicitada (el query param viene URL-encoded; URL lo decodifica).
+  // 2) Requested folder (the query param comes URL-encoded; URL decodes it).
   const { searchParams } = new URL(request.url);
   const raw = searchParams.get("prefix");
   if (!raw) {
     return new Response("Falta el parámetro 'prefix'", { status: 400 });
   }
 
-  // Nombre limpio: sin barras al inicio/final y sin componentes de ruta raros.
+  // Clean name: no leading/trailing slashes and no weird path components.
   const folder = raw.replace(/^\/+/, "").replace(/\/+$/, "");
   if (!folder || folder.includes("..")) {
     return new Response("Carpeta no válida", { status: 400 });
   }
 
-  // 3) Listar TODOS los objetos de la carpeta (paginando con cursor).
+  // 3) List ALL objects in the folder (paginating with a cursor).
   const { fullPrefix, keys } = await listObjectKeys(folder);
   if (keys.length === 0) {
     return new Response("La carpeta está vacía o no existe", { status: 404 });
   }
 
-  // 3b) AUDITORÍA: registra quién descarga qué paciente. Aparece en los logs del
-  //     Worker (observability activado en wrangler.jsonc; ver con `wrangler tail`
-  //     o en el dashboard → Worker → Logs). Línea JSON para poder filtrar.
+  // 3b) AUDIT: logs who downloads which patient. Appears in the Worker logs
+  //     (observability enabled in wrangler.jsonc; view with `wrangler tail`
+  //     or in the dashboard → Worker → Logs). JSON line so it can be filtered.
   console.log(
     JSON.stringify({
       event: "zip_download",
@@ -58,14 +58,14 @@ export async function GET(request: Request) {
 
   const bucket = await getBucket();
 
-  // 4) Generador asíncrono: cede los archivos uno a uno para zip en streaming
-  //    (memoria constante, sin bufferizar el zip completo).
+  // 4) Async generator: yields the files one by one for streaming zip
+  //    (constant memory, without buffering the entire zip).
   async function* files() {
     for (const key of keys) {
       const object = await bucket.get(key);
-      if (!object) continue; // borrado entre el list y el get: lo saltamos
+      if (!object) continue; // deleted between the list and the get: skip it
       yield {
-        // Ruta relativa dentro del zip (sin el prefijo Imagenes/<carpeta>/).
+        // Relative path inside the zip (without the BASE_PREFIX/<folder>/ prefix).
         name: key.slice(fullPrefix.length),
         lastModified: object.uploaded,
         input: object.body as unknown as ReadableStream<Uint8Array>,
@@ -73,8 +73,8 @@ export async function GET(request: Request) {
     }
   }
 
-  // 5) Respuesta zip en streaming con nombre de archivo correcto (acentos vía
-  //    filename* UTF-8, más un fallback ASCII en filename).
+  // 5) Streaming zip response with the correct filename (accents via
+  //    filename* UTF-8, plus an ASCII fallback in filename).
   const zipName = `${folder}.zip`;
   const response = downloadZip(files());
   const headers = new Headers(response.headers);
@@ -91,7 +91,7 @@ export async function GET(request: Request) {
   });
 }
 
-/** Sustituye caracteres no ASCII por '_' para el filename clásico. */
+/** Replaces non-ASCII characters with '_' for the classic filename. */
 function asciiFallback(name: string): string {
   // eslint-disable-next-line no-control-regex
   return name.replace(/[^\x20-\x7E]/g, "_").replace(/["\\]/g, "_");

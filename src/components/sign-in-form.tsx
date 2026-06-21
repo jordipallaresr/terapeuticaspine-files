@@ -11,8 +11,8 @@ import { Input } from "@/components/ui/input";
 
 type Step = "email" | "code";
 
-// Sólo se permite el acceso a correos de la organización. Se valida en cliente
-// antes de llamar a Clerk; el mensaje de error es genérico a propósito.
+// Only organization emails are allowed to sign in. It's validated client-side
+// before calling Clerk; the error message is generic on purpose.
 const ALLOWED_EMAIL_DOMAIN = "terapeuticaspine.com";
 
 export function SignInForm() {
