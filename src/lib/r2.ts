@@ -1,35 +1,33 @@
 import "server-only";
+import { getCloudflareContext } from "@opennextjs/cloudflare";
+
 import { BASE_PREFIX, getBucket } from "./config";
+import {
+  listFoldersFromR2,
+  readFolderCache,
+  writeFolderCache,
+} from "./folder-cache";
 
 /**
- * Lists ALL top-level folders under BASE_PREFIX, paginating with a cursor until
- * the end (it doesn't stop at the first page of 1000). Returns the "clean" names
- * (without the prefix or trailing slash), sorted alphabetically.
+ * Lists ALL top-level folders under BASE_PREFIX.
+ *
+ * Fast path: returns the listing cached in KV by the cron (see `worker.ts`),
+ * refreshed hourly, so the page doesn't hit R2 on each request.
+ * Fallback: on a cache miss (first deploy, expired TTL, cron not run yet) it
+ * lists live from R2 and repopulates the cache for the next request.
  */
 export async function listFolders(): Promise<string[]> {
-  const bucket = await getBucket();
-  const folders: string[] = [];
-  let cursor: string | undefined;
+  const { env } = await getCloudflareContext({ async: true });
 
-  do {
-    const res = await bucket.list({
-      prefix: BASE_PREFIX,
-      delimiter: "/",
-      cursor,
-    });
+  const cached = await readFolderCache(env.FOLDERS_CACHE);
+  if (cached) return cached.folders;
 
-    for (const prefix of res.delimitedPrefixes) {
-      const name = prefix.slice(BASE_PREFIX.length).replace(/\/+$/, "");
-      if (name) folders.push(name);
-    }
-
-    cursor = res.truncated ? res.cursor : undefined;
-  } while (cursor);
-
-  folders.sort((a, b) =>
-    a.localeCompare(b, "es", { sensitivity: "base", numeric: true }),
-  );
-
+  const folders = await listFoldersFromR2(env.IMAGENES_BUCKET, BASE_PREFIX);
+  try {
+    await writeFolderCache(env.FOLDERS_CACHE, folders, new Date().toISOString());
+  } catch {
+    // Non-fatal: still return the live result even if the cache write fails.
+  }
   return folders;
 }
 

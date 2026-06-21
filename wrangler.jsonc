@@ -1,9 +1,17 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "terapeuticaspine-files",
-  "main": ".open-next/worker.js",
+  // Custom Worker entrypoint: re-uses OpenNext's generated fetch handler and
+  // adds a `scheduled` handler for the Cron Trigger (see worker.ts).
+  "main": "worker.ts",
   "compatibility_date": "2026-06-01",
   "compatibility_flags": ["nodejs_compat"],
+
+  // Cron Trigger: every hour refresh the cached folder listing in KV
+  // (worker.ts -> refreshFolderCache).
+  "triggers": {
+    "crons": ["0 * * * *"]
+  },
 
   // Text variables (non-secret) available in the Worker runtime.
   // The base prefix under which patient folders live in the bucket.
@@ -29,6 +37,16 @@
       "bucket_name": "onedrive-backup",
       "jurisdiction": "eu",
       "remote": true
+    }
+  ],
+
+  // KV namespace for the cached folder listing. The cron writes here every
+  // 30 min and the home page reads from here (falling back to a live R2 list).
+  // Dashboard name: "terapeuticaspine-files-cache".
+  "kv_namespaces": [
+    {
+      "binding": "FOLDERS_CACHE",
+      "id": "9e3d78bcd3924892b7a226331024b668"
     }
   ],
 

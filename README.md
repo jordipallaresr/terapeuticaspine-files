@@ -13,13 +13,16 @@ you can't see or download anything.
 - **Clerk** (`@clerk/nextjs`) for authentication
 - **shadcn/ui** + **Tailwind CSS v4** + **lucide-react** for the UI
 - **R2 via the Worker's native binding** (no S3 SDK)
+- **Workers KV** + an hourly **Cron Trigger** to cache the folder listing
 - **`client-zip`** to generate the ZIP as a stream (constant memory)
 
 ## How it works
 
 - The home page (`/`) lists every top-level folder under the `Imagenes anteriores/` prefix in
-  the R2 bucket, paginating with `cursor` to the end (~2500 folders). Names are
-  shown clean (without the prefix or trailing slash) and Title-Cased.
+  the R2 bucket (~2500 folders). The listing is **cached in KV** and refreshed by
+  an hourly Cron Trigger (see **Folder cache** below), so the page doesn't hit R2
+  on every request. Names are shown clean (without the prefix or trailing slash)
+  and Title-Cased.
 - Search filters by substring, **case- and accent-insensitive, on the client**
   (instant). All names are loaded once on the server and filtered in the browser.
 - Clicking a folder downloads a **ZIP with all its files** via
@@ -102,6 +105,32 @@ The binding is already declared in `wrangler.jsonc`:
   instead of the empty local simulator (ignored in production).
 - Folders must live under `Imagenes anteriores/` (the `BASE_PREFIX` var). The bucket is **not**
   public: all access goes through the authenticated app.
+
+---
+
+## Folder cache (KV + Cron)
+
+Listing ~2500 folders means several R2 `list` calls. To keep page loads fast,
+the listing is cached in **Workers KV** and refreshed by a **Cron Trigger**.
+
+- **Cron**: runs hourly (`"0 * * * *"` in `wrangler.jsonc` → `triggers.crons`).
+  It calls `refreshFolderCache()`, which lists the folders from R2 and writes
+  them to KV under the key `folders:list` (with a 3 h safety TTL).
+- **Custom Worker entrypoint** (`worker.ts`): OpenNext only generates a `fetch`
+  handler, so `worker.ts` re-uses it and adds the `scheduled` handler the cron
+  needs. `wrangler.jsonc` → `main` points to `worker.ts`. The file is excluded
+  from `next build` typecheck because it imports the build-generated
+  `.open-next/worker.js` (see `tsconfig.json`). Docs:
+  https://opennext.js.org/cloudflare/howtos/custom-worker
+- **Read path** (`listFolders()` in `src/lib/r2.ts`): reads from KV first; on a
+  cache miss (first deploy, expired TTL, cron not run yet) it lists live from R2
+  and repopulates the cache. So there's never a window without data.
+- **KV namespace**: binding `FOLDERS_CACHE` in `wrangler.jsonc`. Create it in the
+  dashboard (Storage & Databases → KV) or with
+  `pnpm exec wrangler kv namespace create FOLDERS_CACHE`, then paste the id.
+- Each refresh logs a `folder_cache_refresh` line in the Worker logs.
+- Trade-off: the listing can be up to ~1 h stale (fine for a folder list that
+  rarely changes).
 
 ---
 
