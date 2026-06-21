@@ -32,10 +32,11 @@
     }
   ],
 
-  // CPU extendida (5 min) para zips grandes: SOLO en plan de pago (Workers Paid).
-  // En plan Free hay que dejarlo fuera o el deploy falla (code 100328).
-  // Si pasas a Paid, descomenta para subir el límite:
-  // "limits": { "cpu_ms": 300000 },
+  // CPU extendida (5 min) para zips grandes: requiere Workers Paid (ya activo).
+  // Sube el límite por defecto para que el CRC32 de carpetas grandes no se corte.
+  "limits": {
+    "cpu_ms": 300000
+  },
 
   "observability": {
     "enabled": true
