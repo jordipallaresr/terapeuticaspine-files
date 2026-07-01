@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import {
+  ChevronLeft,
+  ChevronRight,
   Download,
   Folder,
   FolderSearch,
@@ -9,8 +11,12 @@ import {
   Search,
 } from "lucide-react";
 
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+
+/** Maximum number of patients shown per page. */
+const PAGE_SIZE = 50;
 
 /** Removes accents/diacritics and lowercases to compare without accents. */
 function normalize(s: string): string {
@@ -32,6 +38,7 @@ function titleCase(s: string): string {
 
 export function FolderBrowser({ folders }: { folders: string[] }) {
   const [query, setQuery] = useState("");
+  const [page, setPage] = useState(1);
   const [downloading, setDownloading] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -39,6 +46,21 @@ export function FolderBrowser({ folders }: { folders: string[] }) {
     if (!q) return folders;
     return folders.filter((f) => normalize(f).includes(q));
   }, [folders, query]);
+
+  // Clamp instead of trusting `page`: the filtered list can shrink (e.g. while
+  // typing a search) and leave `page` pointing past the last page.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageItems = filtered.slice(
+    (currentPage - 1) * PAGE_SIZE,
+    currentPage * PAGE_SIZE,
+  );
+
+  function goToPage(next: number) {
+    setPage(Math.min(Math.max(1, next), totalPages));
+    // Bring the top of the list back into view after switching pages.
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
   function handleDownload(folder: string) {
     if (downloading) return; // prevents double click / overlapping downloads
@@ -66,7 +88,11 @@ export function FolderBrowser({ folders }: { folders: string[] }) {
           autoFocus
           placeholder="Buscar paciente…"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            // A new search invalidates the current position in the results.
+            setPage(1);
+          }}
           className="h-11 pl-9 text-base"
           aria-label="Buscar paciente"
         />
@@ -82,7 +108,7 @@ export function FolderBrowser({ folders }: { folders: string[] }) {
         <EmptyState query={query} />
       ) : (
         <ul className="divide-y rounded-lg border bg-card">
-          {filtered.map((folder) => {
+          {pageItems.map((folder) => {
             const isDownloading = downloading === folder;
             const isDisabled = downloading !== null && !isDownloading;
             return (
@@ -116,6 +142,38 @@ export function FolderBrowser({ folders }: { folders: string[] }) {
             );
           })}
         </ul>
+      )}
+
+      {totalPages > 1 && (
+        <nav
+          className="flex items-center justify-between gap-3"
+          aria-label="Paginación de pacientes"
+        >
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <ChevronLeft />
+            Anterior
+          </Button>
+          <p className="text-sm text-muted-foreground" aria-live="polite">
+            Página {currentPage.toLocaleString("es")} de{" "}
+            {totalPages.toLocaleString("es")}
+          </p>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            Siguiente
+            <ChevronRight />
+          </Button>
+        </nav>
       )}
     </div>
   );
